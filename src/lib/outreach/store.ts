@@ -5,12 +5,20 @@ const DEMO_MESSAGES_KEY = "idf-deal-finder:demo-outreach-messages";
 const DEMO_SLOTS_KEY = "idf-deal-finder:demo-availability-slots";
 
 function readDemoStore<T>(key: string): T[] {
-  const raw = localStorage.getItem(key);
-  return raw ? (JSON.parse(raw) as T[]) : [];
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T[]) : [];
+  } catch {
+    return [];
+  }
 }
 
 function writeDemoStore<T>(key: string, items: T[]): void {
-  localStorage.setItem(key, JSON.stringify(items));
+  try {
+    localStorage.setItem(key, JSON.stringify(items));
+  } catch {
+    // Stockage indisponible (navigation privée restrictive, contexte sandboxé...) : on continue sans persister.
+  }
 }
 
 export async function listOutreachMessages(): Promise<OutreachMessageRecord[]> {

@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { HashRouter, Route, Routes } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { Dashboard } from "@/pages/Dashboard";
 import { ListingDetail } from "@/pages/ListingDetail";
@@ -9,7 +9,7 @@ import { RankedListingsProvider } from "@/lib/RankedListingsContext";
 export function App() {
   return (
     <RankedListingsProvider>
-      <BrowserRouter>
+      <HashRouter>
         <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<Dashboard />} />
@@ -18,7 +18,7 @@ export function App() {
             <Route path="/contacts/nouveau" element={<ComposeOutreach />} />
           </Route>
         </Routes>
-      </BrowserRouter>
+      </HashRouter>
     </RankedListingsProvider>
   );
 }
