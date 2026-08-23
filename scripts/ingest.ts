@@ -8,6 +8,7 @@
 import "dotenv/config";
 import { demoAdapter } from "../src/scrapers/adapters/demoAdapter";
 import { createJinkaAdapter } from "../src/scrapers/adapters/jinkaAdapter";
+import { createJinkaEmailAdapter } from "../src/scrapers/adapters/jinkaEmailAdapter";
 import { normalizeListing } from "../src/scrapers/normalize";
 import type { ListingSourceAdapter } from "../src/scrapers/types";
 import { scoreListing } from "../src/lib/scoring";
@@ -22,10 +23,24 @@ function buildAdapters(): ListingSourceAdapter[] {
 
   const jinkaEmail = process.env.JINKA_EMAIL;
   const jinkaPassword = process.env.JINKA_PASSWORD;
-  if (jinkaEmail && jinkaPassword) {
+  const jinkaImapUser = process.env.JINKA_IMAP_USER;
+  const jinkaImapAppPassword = process.env.JINKA_IMAP_APP_PASSWORD;
+
+  if (jinkaImapUser && jinkaImapAppPassword) {
+    // Compte Jinka sans mot de passe fixe (connexion par code email) : on lit
+    // les emails d'alerte plutôt que d'appeler l'API Jinka directement.
+    adapters.push(
+      createJinkaEmailAdapter({
+        host: process.env.JINKA_IMAP_HOST ?? "imap.mail.me.com",
+        port: Number(process.env.JINKA_IMAP_PORT ?? "993"),
+        user: jinkaImapUser,
+        appPassword: jinkaImapAppPassword,
+      }),
+    );
+  } else if (jinkaEmail && jinkaPassword) {
     adapters.push(createJinkaAdapter({ email: jinkaEmail, password: jinkaPassword }));
   } else {
-    console.log("Jinka non configuré (JINKA_EMAIL/JINKA_PASSWORD absents) — source ignorée.");
+    console.log("Jinka non configuré (ni JINKA_IMAP_*, ni JINKA_EMAIL/JINKA_PASSWORD) — source ignorée.");
   }
 
   // L'adaptateur de démo (données factices) ne tourne que s'il n'y a aucune
