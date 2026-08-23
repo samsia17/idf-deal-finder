@@ -1,4 +1,4 @@
-import { HashRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { Dashboard } from "@/pages/Dashboard";
 import { ListingDetail } from "@/pages/ListingDetail";
@@ -27,7 +27,7 @@ export function App() {
     <AuthProvider>
       <Gate>
         <RankedListingsProvider>
-          <HashRouter>
+          <BrowserRouter>
             <Routes>
               <Route element={<Layout />}>
                 <Route path="/" element={<Dashboard />} />
@@ -36,7 +36,7 @@ export function App() {
                 <Route path="/contacts/nouveau" element={<ComposeOutreach />} />
               </Route>
             </Routes>
-          </HashRouter>
+          </BrowserRouter>
         </RankedListingsProvider>
       </Gate>
     </AuthProvider>
