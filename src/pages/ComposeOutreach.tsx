@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useRankedListings } from "@/lib/RankedListingsContext";
 import { generateOutreachEmail } from "@/lib/outreach/emailTemplate";
 import { createOutreachMessage, listAvailabilitySlots, sendOutreachMessage } from "@/lib/outreach/store";
+import { describeFunctionError } from "@/lib/functionsError";
 import type { AvailabilitySlotRecord } from "@/lib/outreach/types";
 
 const SENDER_NAME = (import.meta.env.VITE_OUTREACH_SENDER_NAME as string | undefined) ?? "Votre nom";
@@ -84,7 +85,7 @@ export function ComposeOutreach() {
       setSentMessage("Message envoyé (ou simulé en mode démonstration).");
       setTimeout(() => navigate("/contacts"), 1200);
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : "Échec de l'envoi");
+      setErrorMessage(await describeFunctionError(err, "Échec de l'envoi"));
     } finally {
       setSending(false);
     }

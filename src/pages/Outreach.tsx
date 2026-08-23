@@ -6,6 +6,7 @@ import {
   removeAvailabilitySlot,
 } from "@/lib/outreach/store";
 import { supabase } from "@/lib/supabase/client";
+import { describeFunctionError } from "@/lib/functionsError";
 import type { AvailabilitySlotRecord, OutreachMessageRecord } from "@/lib/outreach/types";
 
 const STATUS_LABELS: Record<OutreachMessageRecord["status"], string> = {
@@ -114,7 +115,7 @@ function AutoPilotPanel() {
       if (error) throw error;
       setResultText(`${data.processed} annonce(s) traitée(s).`);
     } catch (err) {
-      setResultText(`Erreur : ${err instanceof Error ? err.message : "inconnue"}`);
+      setResultText(`Erreur : ${await describeFunctionError(err, "inconnue")}`);
     } finally {
       setRunning(false);
     }

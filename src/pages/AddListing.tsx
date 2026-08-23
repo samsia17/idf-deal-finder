@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/AuthContext";
 import { useRankedListings } from "@/lib/RankedListingsContext";
 import { addManualListing } from "@/lib/manualListing";
+import { describeFunctionError } from "@/lib/functionsError";
 import type { Condition, PropertyType } from "@/types/listing";
 
 const CONDITION_OPTIONS: Array<{ value: Condition | ""; label: string }> = [
@@ -109,7 +110,7 @@ export function AddListing() {
         setExtractionMessage("Tout a été extrait automatiquement — vérifie avant d'enregistrer.");
       }
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : "Échec de l'extraction automatique");
+      setErrorMessage(await describeFunctionError(err, "Échec de l'extraction automatique"));
     } finally {
       setExtracting(false);
     }
