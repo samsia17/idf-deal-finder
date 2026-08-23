@@ -5,6 +5,7 @@
  *
  * Usage : npm run ingest
  */
+import "dotenv/config";
 import { demoAdapter } from "../src/scrapers/adapters/demoAdapter";
 import { createJinkaAdapter } from "../src/scrapers/adapters/jinkaAdapter";
 import { normalizeListing } from "../src/scrapers/normalize";

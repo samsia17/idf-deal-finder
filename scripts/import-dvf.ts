@@ -10,6 +10,7 @@
  *   npm run import:dvf -- --year 2024
  *   npm run import:dvf -- --year 2024 --departements 75,92,93
  */
+import "dotenv/config";
 import { parse } from "csv-parse";
 import { Readable } from "node:stream";
 import { createGunzip } from "node:zlib";
