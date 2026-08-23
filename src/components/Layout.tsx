@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase/client";
 
 const navItems = [
   { to: "/", label: "Annonces" },
+  { to: "/annonces/nouvelle", label: "Ajouter une annonce" },
   { to: "/contacts", label: "Prises de contact" },
 ];
 

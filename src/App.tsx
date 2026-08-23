@@ -4,6 +4,7 @@ import { Dashboard } from "@/pages/Dashboard";
 import { ListingDetail } from "@/pages/ListingDetail";
 import { Outreach } from "@/pages/Outreach";
 import { ComposeOutreach } from "@/pages/ComposeOutreach";
+import { AddListing } from "@/pages/AddListing";
 import { Login } from "@/pages/Login";
 import { RankedListingsProvider } from "@/lib/RankedListingsContext";
 import { AuthProvider, useAuth } from "@/lib/AuthContext";
@@ -31,6 +32,7 @@ export function App() {
             <Routes>
               <Route element={<Layout />}>
                 <Route path="/" element={<Dashboard />} />
+                <Route path="/annonces/nouvelle" element={<AddListing />} />
                 <Route path="/annonces/:id" element={<ListingDetail />} />
                 <Route path="/contacts" element={<Outreach />} />
                 <Route path="/contacts/nouveau" element={<ComposeOutreach />} />
