@@ -6,6 +6,7 @@
  * Usage : npm run ingest
  */
 import { demoAdapter } from "../src/scrapers/adapters/demoAdapter";
+import { createJinkaAdapter } from "../src/scrapers/adapters/jinkaAdapter";
 import { normalizeListing } from "../src/scrapers/normalize";
 import type { ListingSourceAdapter } from "../src/scrapers/types";
 import { scoreListing } from "../src/lib/scoring";
@@ -15,7 +16,25 @@ import { createAdminClient } from "./supabaseAdmin";
 
 // Ajoute ici tes adaptateurs réels une fois implémentés (voir
 // src/scrapers/adapters/siteAdapter.template.ts).
-const ADAPTERS: ListingSourceAdapter[] = [demoAdapter];
+function buildAdapters(): ListingSourceAdapter[] {
+  const adapters: ListingSourceAdapter[] = [];
+
+  const jinkaEmail = process.env.JINKA_EMAIL;
+  const jinkaPassword = process.env.JINKA_PASSWORD;
+  if (jinkaEmail && jinkaPassword) {
+    adapters.push(createJinkaAdapter({ email: jinkaEmail, password: jinkaPassword }));
+  } else {
+    console.log("Jinka non configuré (JINKA_EMAIL/JINKA_PASSWORD absents) — source ignorée.");
+  }
+
+  // L'adaptateur de démo (données factices) ne tourne que s'il n'y a aucune
+  // vraie source configurée, pour ne pas polluer une base réelle.
+  if (adapters.length === 0) {
+    adapters.push(demoAdapter);
+  }
+
+  return adapters;
+}
 
 function getOwnerUserId(): string {
   const userId = process.env.APP_OWNER_USER_ID;
@@ -31,6 +50,7 @@ async function main() {
   const admin = createAdminClient();
   const ownerUserId = getOwnerUserId();
   const area = { departements: [...IDF_DEPARTEMENTS] };
+  const ADAPTERS = buildAdapters();
 
   let inserted = 0;
   let scored = 0;

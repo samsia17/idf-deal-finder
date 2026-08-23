@@ -33,10 +33,20 @@ automatiser la prise de contact avec les agences pour organiser des visites.
 - ✅ **Dashboard, détail d'annonce, agent de contact (UI)** : testés dans un
   vrai navigateur (Playwright) en mode démonstration — captures d'écran
   validées, aucune erreur console. Fonctionne sans aucune configuration.
-- ⚠️ **Scraping de vrais sites d'annonces** : **non implémenté**. Seul un
-  gabarit (`src/scrapers/adapters/siteAdapter.template.ts`) et un adaptateur
-  de démonstration (données générées, pas de vraies annonces) existent. Voir
-  `src/scrapers/README.md` avant d'en écrire un.
+- ⚠️ **Jinka** : adaptateur écrit et testé unitairement (mapping des données,
+  6 tests), mais **jamais exécuté contre un vrai compte Jinka** — je n'ai pas
+  d'identifiants dans cette session. Intégration non officielle (voir
+  `src/scrapers/adapters/jinkaAdapter.ts`) : Jinka n'a pas d'API publique
+  documentée, ceci s'appuie sur leur API interne. Probable violation de leurs
+  CGU, risque de suspension de compte, peut casser sans préavis. Le mapping
+  prix/type de bien a été déduit d'exemples de LOCATION (une seule référence
+  publique disponible) — à vérifier pour des alertes ACHAT au premier run
+  réel. Jinka n'expose pas le contact agence dans le flux observé : les
+  annonces Jinka ne seront donc pas prises en charge par l'agent de contact
+  automatique tant que ce point n'est pas résolu.
+- ⚠️ **Scraping d'autres sites d'annonces** : **non implémenté**. Seul un
+  gabarit (`src/scrapers/adapters/siteAdapter.template.ts`) existe pour un
+  site direct (SeLoger, PAP...). Voir `src/scrapers/README.md`.
 - ⚠️ **Envoi réel d'email et pilote automatique** : le code est écrit
   (Supabase Edge Functions + Resend) mais **jamais exécuté contre un vrai
   compte Resend/Supabase** dans cette session — aucune clé API disponible ici.
@@ -96,9 +106,37 @@ Avec seulement l'adaptateur de démo activé par défaut :
 npm run ingest
 ```
 
-Pour de vraies annonces, implémente un adaptateur (voir
-`src/scrapers/README.md` — CGU, robots.txt, API officielles à privilégier),
-ajoute-le à `ADAPTERS` dans `scripts/ingest.ts`, relance `npm run ingest`.
+Pour d'autres sources, implémente un adaptateur (voir `src/scrapers/README.md`
+— CGU, robots.txt, API officielles à privilégier), ajoute-le dans
+`buildAdapters()` (`scripts/ingest.ts`), relance `npm run ingest`.
+
+#### Jinka (non officiel)
+
+```sh
+# .env
+JINKA_EMAIL=ton-email@example.com
+JINKA_PASSWORD=ton-mot-de-passe
+```
+
+Dès que ces deux variables sont définies, `npm run ingest` interroge Jinka en
+plus de la démo (qui se désactive automatiquement dès qu'une vraie source est
+configurée). **Avant de lancer ça** :
+
+- Crée au moins une alerte de recherche sur jinka.fr (achat, IDF) — sans
+  alerte configurée, l'adaptateur ne récupère rien.
+- Utilise idéalement un compte Jinka dédié, pas ton compte principal : cette
+  intégration n'est pas officielle et peut entraîner une suspension.
+- Le premier run va probablement afficher des avertissements dans la console
+  (`[jinka] Valeur de type de bien inconnue...`, `...utilisation de "rent"
+  comme prix...`) — c'est attendu, le mapping exact des champs Jinka pour des
+  alertes achat n'a pas pu être vérifié sans compte réel. Regarde les valeurs
+  réelles retournées et ajuste `PROPERTY_TYPE_MAP` / `resolvePriceEur` dans
+  `src/scrapers/adapters/jinkaAdapter.ts` en conséquence.
+- Les annonces importées via Jinka n'auront pas de contact agence (email/
+  téléphone) — Jinka ne l'expose pas dans le flux observé — donc l'agent de
+  contact automatique les ignorera. Il faudra soit suivre `sourceUrl` vers le
+  site d'origine pour extraire le contact, soit préparer les messages
+  manuellement pour ces annonces-là.
 
 ### 4. Activer l'agent de contact
 
