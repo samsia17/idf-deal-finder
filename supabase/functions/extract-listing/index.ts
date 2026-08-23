@@ -14,6 +14,7 @@
 // (types de runtime différents — Deno ici, Node/navigateur côté app) : garde
 // les deux synchronisées si tu modifies l'une des deux.
 import * as cheerio from "npm:cheerio@1.2.0";
+import { corsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
 
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36";
@@ -141,13 +142,19 @@ function extractListingFromHtml(html: string): ExtractedListingFields {
 }
 
 Deno.serve(async (req: Request) => {
+  const preflight = handleCorsPreflight(req);
+  if (preflight) return preflight;
+
   if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405 });
+    return new Response("Method not allowed", { status: 405, headers: corsHeaders });
   }
 
   const { url } = await req.json();
   if (!url || typeof url !== "string") {
-    return new Response(JSON.stringify({ error: "url requis" }), { status: 400 });
+    return new Response(JSON.stringify({ error: "url requis" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   let response: Response;
@@ -163,14 +170,14 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     return new Response(
       JSON.stringify({ error: `Impossible de récupérer la page : ${error instanceof Error ? error.message : error}` }),
-      { status: 502 },
+      { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
 
   if (!response.ok) {
     return new Response(
       JSON.stringify({ error: `La page a répondu ${response.status} — probablement bloquée (anti-bot) ou lien invalide.` }),
-      { status: 502 },
+      { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
 
@@ -183,6 +190,6 @@ Deno.serve(async (req: Request) => {
   );
 
   return new Response(JSON.stringify({ fields, blocked }), {
-    headers: { "Content-Type": "application/json" },
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 });

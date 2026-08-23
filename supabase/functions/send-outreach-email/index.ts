@@ -6,17 +6,24 @@
 // Déploiement : supabase functions deploy send-outreach-email
 // Secrets requis : supabase secrets set RESEND_API_KEY=... OUTREACH_FROM_EMAIL="..."
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { corsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
 
 const RESEND_API_URL = "https://api.resend.com/emails";
 
 Deno.serve(async (req: Request) => {
+  const preflight = handleCorsPreflight(req);
+  if (preflight) return preflight;
+
   if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405 });
+    return new Response("Method not allowed", { status: 405, headers: corsHeaders });
   }
 
   const { outreachMessageId } = await req.json();
   if (!outreachMessageId) {
-    return new Response(JSON.stringify({ error: "outreachMessageId requis" }), { status: 400 });
+    return new Response(JSON.stringify({ error: "outreachMessageId requis" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -27,7 +34,7 @@ Deno.serve(async (req: Request) => {
   if (!resendApiKey || !fromEmail) {
     return new Response(
       JSON.stringify({ error: "RESEND_API_KEY et OUTREACH_FROM_EMAIL doivent être configurés (secrets Supabase)." }),
-      { status: 500 },
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
 
@@ -40,7 +47,10 @@ Deno.serve(async (req: Request) => {
     .single();
 
   if (fetchError || !message) {
-    return new Response(JSON.stringify({ error: "Message introuvable" }), { status: 404 });
+    return new Response(JSON.stringify({ error: "Message introuvable" }), {
+      status: 404,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   const resendResponse = await fetch(RESEND_API_URL, {
@@ -63,7 +73,10 @@ Deno.serve(async (req: Request) => {
       .from("outreach_messages")
       .update({ status: "failed", error_message: errorText.slice(0, 500) })
       .eq("id", outreachMessageId);
-    return new Response(JSON.stringify({ error: `Échec Resend: ${errorText}` }), { status: 502 });
+    return new Response(JSON.stringify({ error: `Échec Resend: ${errorText}` }), {
+      status: 502,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   await admin
@@ -72,6 +85,6 @@ Deno.serve(async (req: Request) => {
     .eq("id", outreachMessageId);
 
   return new Response(JSON.stringify({ success: true }), {
-    headers: { "Content-Type": "application/json" },
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 });

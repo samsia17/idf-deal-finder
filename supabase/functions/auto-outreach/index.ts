@@ -13,6 +13,7 @@
 // désactivation de ce Cron à tout moment (voir README "Désactiver le pilote
 // automatique").
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { corsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
 
 const RESEND_API_URL = "https://api.resend.com/emails";
 const MAX_SLOTS_PROPOSED = 3;
@@ -70,8 +71,11 @@ Ce message a été rédigé et envoyé par un assistant automatisé pour le comp
 }
 
 Deno.serve(async (req: Request) => {
+  const preflight = handleCorsPreflight(req);
+  if (preflight) return preflight;
+
   if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405 });
+    return new Response("Method not allowed", { status: 405, headers: corsHeaders });
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -85,7 +89,7 @@ Deno.serve(async (req: Request) => {
   if (!resendApiKey || !fromEmail) {
     return new Response(
       JSON.stringify({ error: "RESEND_API_KEY et OUTREACH_FROM_EMAIL doivent être configurés." }),
-      { status: 500 },
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
 
@@ -99,7 +103,10 @@ Deno.serve(async (req: Request) => {
     .gte("deal_scores.score", minScore);
 
   if (candidatesError) {
-    return new Response(JSON.stringify({ error: candidatesError.message }), { status: 500 });
+    return new Response(JSON.stringify({ error: candidatesError.message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   const results: Array<{ listingId: string; status: string }> = [];
@@ -162,6 +169,6 @@ Deno.serve(async (req: Request) => {
   }
 
   return new Response(JSON.stringify({ processed: results.length, results }), {
-    headers: { "Content-Type": "application/json" },
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 });
