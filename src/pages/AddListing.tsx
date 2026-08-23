@@ -34,6 +34,8 @@ export function AddListing() {
   const [contactPhone, setContactPhone] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
+  const [extracting, setExtracting] = useState(false);
+  const [extractionMessage, setExtractionMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [noReferenceWarning, setNoReferenceWarning] = useState(false);
 
@@ -46,6 +48,71 @@ export function AddListing() {
         </p>
       </div>
     );
+  }
+  const client = supabase;
+
+  async function handleExtract() {
+    if (!sourceUrl) {
+      setErrorMessage("Colle d'abord un lien.");
+      return;
+    }
+    setExtracting(true);
+    setErrorMessage(null);
+    setExtractionMessage(null);
+
+    try {
+      const { data, error } = await client.functions.invoke("extract-listing", {
+        body: { url: sourceUrl },
+      });
+      if (error) throw error;
+
+      const fields = data.fields as {
+        title: string | null;
+        description: string | null;
+        priceEur: number | null;
+        surfaceM2: number | null;
+        rooms: number | null;
+        commune: string | null;
+        postalCode: string | null;
+        propertyType: PropertyType | null;
+        contactEmail: string | null;
+        contactPhone: string | null;
+        agencyName: string | null;
+      };
+
+      if (fields.title) setTitle(fields.title);
+      if (fields.description) setDescription(fields.description);
+      if (fields.priceEur) setPriceEur(String(fields.priceEur));
+      if (fields.surfaceM2) setSurfaceM2(String(fields.surfaceM2));
+      if (fields.rooms) setRooms(String(fields.rooms));
+      if (fields.commune) setCommune(fields.commune);
+      if (fields.postalCode) setPostalCode(fields.postalCode);
+      if (fields.propertyType) setPropertyType(fields.propertyType);
+      if (fields.contactEmail) setContactEmail(fields.contactEmail);
+      if (fields.contactPhone) setContactPhone(fields.contactPhone);
+      if (fields.agencyName) setAgencyName(fields.agencyName);
+
+      const missing = [
+        !fields.priceEur && "prix",
+        !fields.surfaceM2 && "surface",
+        !fields.commune && "commune",
+        !fields.contactEmail && "email de contact",
+      ].filter(Boolean);
+
+      if (data.blocked) {
+        setExtractionMessage(
+          "Le site semble bloquer les requêtes automatiques (protection anti-bot) — complète les champs à la main.",
+        );
+      } else if (missing.length > 0) {
+        setExtractionMessage(`Extrait ce qui était trouvable. Manquant, à compléter toi-même : ${missing.join(", ")}.`);
+      } else {
+        setExtractionMessage("Tout a été extrait automatiquement — vérifie avant d'enregistrer.");
+      }
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : "Échec de l'extraction automatique");
+    } finally {
+      setExtracting(false);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -64,7 +131,7 @@ export function AddListing() {
     setNoReferenceWarning(false);
 
     try {
-      const result = await addManualListing(supabase!, session.user.id, {
+      const result = await addManualListing(client, session.user.id, {
         source: "manuel",
         sourceUrl,
         title: title || `${rooms ? `${rooms} pièces ` : ""}${surface} m² à ${commune}`,
@@ -102,21 +169,33 @@ export function AddListing() {
     <div className="max-w-xl">
       <h1 className="text-xl font-bold text-neutral-900">Ajouter une annonce</h1>
       <p className="mt-1 text-sm text-neutral-500">
-        Colle le lien d'une annonce que tu as repérée toi-même (Jinka, SeLoger, LeBonCoin...) et remplis les
-        infos affichées dessus. Elle sera scorée et prise en charge par l'agent de contact comme les autres.
+        Colle le lien d'une annonce que tu as repérée toi-même (Jinka, SeLoger, LeBonCoin...), clique
+        "Extraire automatiquement" pour préremplir ce qui est trouvable, puis complète/corrige le reste.
+        Elle sera scorée et prise en charge par l'agent de contact comme les autres.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-4 space-y-3">
         <div>
           <label className="block text-sm font-medium text-neutral-700">Lien de l'annonce *</label>
-          <input
-            type="url"
-            required
-            value={sourceUrl}
-            onChange={(e) => setSourceUrl(e.target.value)}
-            placeholder="https://..."
-            className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
-          />
+          <div className="mt-1 flex gap-2">
+            <input
+              type="url"
+              required
+              value={sourceUrl}
+              onChange={(e) => setSourceUrl(e.target.value)}
+              placeholder="https://..."
+              className="flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-sm"
+            />
+            <button
+              type="button"
+              onClick={handleExtract}
+              disabled={extracting || !sourceUrl}
+              className="shrink-0 rounded-lg border border-brand-600 px-3 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50 disabled:opacity-50"
+            >
+              {extracting ? "Extraction..." : "Extraire automatiquement"}
+            </button>
+          </div>
+          {extractionMessage && <p className="mt-1 text-xs text-neutral-600">{extractionMessage}</p>}
         </div>
 
         <div>
